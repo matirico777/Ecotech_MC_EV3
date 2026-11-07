@@ -1,31 +1,38 @@
 import os
 import sqlite3
-import pymysql
-from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass
 
-def marcador_sql():
-    if obtener_motor() == "sqlite":
-        return "?"
-    return "%s"
 
 def obtener_motor():
-    return os.getenv("DB_ENGINE", "sqlite").lower()
+    return os.getenv("DB_ENGINE", "sqlite").strip().lower()
+
+
+def marcador_sql():
+    return "?" if obtener_motor() == "sqlite" else "%s"
+
 
 def abrir_conexion():
     motor = obtener_motor()
     if motor == "sqlite":
-        conexion = sqlite3.connect(os.getenv("DB_NAME", "ecotech.db"))
+        ruta = Path(os.getenv("DB_NAME", "ecotech.db"))
+        if not ruta.is_absolute():
+            ruta = Path(__file__).resolve().parents[2] / ruta
+        conexion = sqlite3.connect(str(ruta))
         conexion.execute("PRAGMA foreign_keys = ON")
         return conexion
     if motor == "mysql":
-        return pymysql.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", "3306")),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME"),
-            charset="utf8mb4",
-        )
-    raise ValueError(f"Motor no soportado: {motor}")
+        try:
+            import pymysql
+        except ImportError as error:
+            raise RuntimeError("Instale PyMySQL para utilizar MySQL.") from error
+        return pymysql.connect(host=os.getenv("DB_HOST", "localhost"),
+                               port=int(os.getenv("DB_PORT", "3306")),
+                               user=os.getenv("DB_USER"), password=os.getenv("DB_PASSWORD"),
+                               database=os.getenv("DB_NAME"), charset="utf8mb4")
+    raise ValueError("Motor de base de datos no permitido.")

@@ -1,140 +1,132 @@
-# EcoTech Solutions — Sistema de Gestión de Empleados
+# EcoTech Solutions — Evaluación 3
 
-**Asignatura:** TI3021 — Programación Orientada a Objeto Seguro  
-**Evaluación:** Unidad 2 — Implementación de Software Orientado a Objetos en Python
+**Asignatura:** Programación Orientada a Objeto Seguro  
+**Carrera:** Ingeniería en Ciberseguridad — INACAP
 
-## Descripción
+## Descripción del proyecto
 
-EcoTech Solutions es un proyecto académico desarrollado en Python que simula un sistema de gestión empresarial. Permite administrar empleados, departamentos, proyectos y registros de horas trabajadas.
+EcoTech Solutions es un sistema desarrollado en Python que permite gestionar empleados, departamentos, proyectos y registros de horas de trabajo.
 
-El programa utiliza programación orientada a objetos (POO), operaciones CRUD, conexión a bases de datos y mecanismos de manejo de errores. Su estructura está basada en un diagrama de clases UML.
+En esta tercera evaluación continué mejorando el proyecto de las unidades anteriores, agregando nuevas funciones relacionadas con la seguridad, el inicio de sesión, las consultas a servicios externos y el almacenamiento de información en SQLite.
+
+La idea principal fue mantener el sistema que ya tenía y hacerlo más completo, considerando las necesidades de la empresa y los contenidos vistos en clases.
 
 ## Funcionalidades principales
 
-El sistema dispone de siete módulos:
+El sistema cuenta con dos tipos de usuarios: administrador y empleado.
 
-1. **Empleado:** gestión de información laboral, consulta de salarios y registro de horas.
-2. **Departamento:** contratación de empleados y administración de las relaciones con departamentos y proyectos.
-3. **Proyecto:** asignación de empleados, registro de horas y generación de informes.
-4. **RegistroTiempo:** creación, consulta y cálculo de registros de horas trabajadas.
-5. **Usuario:** creación de usuarios, autenticación y cambio de contraseñas.
-6. **GestionPermisos:** consulta y asignación de permisos.
-7. **GestionDepartamento:** creación, búsqueda, edición y eliminación de departamentos mediante métodos del dominio.
+**Administrador**
 
-Los cuatro primeros módulos incorporan menús CRUD con conexión a la base de datos. Los tres últimos funcionan como demostraciones en memoria de las clases implementadas.
+Puede acceder a las funciones de gestión de empleados, departamentos, proyectos, registros de tiempo, usuarios y permisos. También puede registrar cuentas de empleados y utilizar los servicios externos.
 
-## Tecnologías utilizadas
+**Empleado**
 
-- Python 3.
-- SQLite mediante `sqlite3`.
-- MySQL mediante `PyMySQL`.
-- `python-dotenv` para administrar la configuración.
-- Git y GitHub para el control de versiones.
+Puede consultar su información personal, modificar los datos permitidos, revisar sus registros de tiempo y acceder a los servicios externos, sin tener permisos para administrar información de otros empleados.
 
-## Instalación
+## Servicios externos
 
-Descargar o clonar el repositorio y abrir una terminal en la carpeta principal del proyecto.
+Se incorporaron dos servicios que permiten obtener información desde internet mediante APIs.
 
-Crear un entorno virtual:
+### Consulta del dólar
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
+El sistema consulta el valor del dólar desde la API de mindicador.cl.
 
-Instalar las dependencias:
+Permite:
 
-```powershell
+- Consultar el valor del dólar y verificar su fecha.
+- Guardar cotizaciones en SQLite.
+- Revisar el historial de cotizaciones.
+- Convertir presupuestos de pesos chilenos a dólares.
+
+Cada vez que se utiliza la consulta, el programa solicita información actualizada. Si el servicio entrega una cotización de una fecha anterior, se informa al usuario para evitar utilizarla como si fuera del día actual.
+
+### Consulta del clima
+
+El sistema utiliza Open-Meteo para consultar las condiciones climáticas de cuatro ciudades de Chile:
+
+1. Antofagasta
+2. Santiago
+3. Coquimbo
+4. Concepción
+
+El usuario selecciona una ciudad mediante un menú y el programa muestra información como la temperatura, humedad, estado del tiempo y fecha de la medición.
+
+Esta función permite considerar las condiciones climáticas al momento de planificar actividades o proyectos.
+
+## Seguridad y validaciones
+
+Para mejorar la seguridad del sistema se implementaron distintas medidas:
+
+- Inicio de sesión mediante usuario y contraseña.
+- Contraseñas almacenadas mediante hash con sal.
+- Permisos diferenciados entre administrador y empleado.
+- Validación de datos ingresados por el usuario.
+- Control de registros duplicados.
+- Uso de `try` y `except` para manejar errores.
+- Control de errores de conexión con servicios externos.
+
+También se mejoró el registro de cuentas. Si el usuario se equivoca al confirmar su contraseña, solamente debe repetir la confirmación, sin comenzar nuevamente todo el proceso.
+
+## Base de datos y semillas
+
+Se utiliza SQLite para almacenar la información del sistema.
+
+El proyecto incluye semillas de datos para crear registros de ejemplo de empleados, departamentos, proyectos, registros de tiempo, cuentas de usuario y relaciones entre entidades.
+
+Las fechas de los datos de ejemplo se calculan al momento de ejecutar las semillas, tomando como referencia la fecha actual de Chile.
+
+Las cotizaciones reales del dólar no se generan mediante semillas, ya que deben obtenerse desde el servicio externo.
+
+## Instalación y ejecución
+
+Primero se deben instalar las dependencias desde la carpeta principal del proyecto:
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-## Configuración de la base de datos
+En Windows, si aparece un error relacionado con la zona horaria `America/Santiago`, se debe instalar:
 
-Crear un archivo `.env` en la carpeta principal del proyecto, utilizando `.env.example` como referencia.
-
-**Para SQLite:**
-
-```ini
-DB_ENGINE=sqlite
-DB_NAME=ecotech.db
+```bash
+python -m pip install tzdata
 ```
 
-**Para MySQL mediante WampServer:**
+Para iniciar el programa:
 
-```ini
-DB_ENGINE=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=ecotech
-DB_USER=root
-DB_PASSWORD=
-```
-
-El puerto, usuario y contraseña deben corresponder a la configuración local de MySQL. Algunos equipos utilizan el puerto `3307`.
-
-Antes de iniciar con MySQL debe existir la base de datos `ecotech`. Puede crearse desde phpMyAdmin.
-
-## Ejecución
-
-Desde la carpeta principal del proyecto:
-
-```powershell
+```bash
 python src/main.py
 ```
 
-El programa lee la configuración del `.env`, establece una conexión con la base seleccionada y ejecuta `crear_tablas()` antes de mostrar el menú principal.
+Para cargar las semillas de datos:
 
-No es necesario ejecutar `conexion.py` por separado.
+```bash
+python src/semilla_bd.py
+```
 
-## Estructura de la base de datos
+Es recomendable respaldar el archivo `ecotech.db` antes de reemplazar el proyecto o cargar información nueva.
 
-El sistema utiliza siete tablas:
+## Organización del proyecto
 
-| Tabla | Descripción |
-|---|---|
-| empleado | Información de empleados |
-| departamento | Información de departamentos |
-| proyecto | Información de proyectos |
-| registro_tiempo | Registros de horas trabajadas |
-| departamento_empleado | Relación entre empleados y departamentos |
-| departamento_proyecto | Relación entre departamentos y proyectos |
-| proyecto_empleado | Relación entre empleados y proyectos |
+- `src/main.py`: inicio del programa, autenticación y menú principal.
+- `src/dominio/`: clases y validaciones.
+- `src/menus/`: menús de las diferentes funcionalidades.
+- `src/servicios/`: autenticación, consultas del dólar y clima.
+- `src/persistencia/`: conexión y operaciones con la base de datos.
+- `src/semilla_bd.py`: generación de datos de ejemplo.
+- `Docs/`: diagramas UML del sistema.
+- `integracion_IA.md`: explicación del apoyo de inteligencia artificial durante el desarrollo.
 
-Las tablas se crean cuando no existen. La creación automática no elimina registros almacenados ni actualiza estructuras antiguas.
+## Relación con la Evaluación 3
 
-## Comprobación del funcionamiento
+El proyecto aborda los cuatro aspectos principales solicitados en la guía:
 
-Para verificar el sistema:
+1. **Consumo de APIs:** consultas del dólar y clima mediante solicitudes HTTP y procesamiento de JSON.
+2. **Seguridad:** autenticación, protección de contraseñas, validaciones y control de permisos.
+3. **Manejo de errores:** utilización de excepciones para controlar entradas incorrectas y fallas externas.
+4. **Uso crítico de IA:** apoyo para revisar, corregir y mejorar el código, documentando los cambios realizados.
 
-1. Ejecutar el programa.
-2. Registrar un empleado mediante el menú CRUD.
-3. Crear un departamento y un proyecto.
-4. Vincular el empleado al departamento y asignarlo al proyecto.
-5. Registrar horas trabajadas.
-6. Consultar la información y generar un informe del proyecto.
-7. Abrir la base de datos y comprobar que se hayan almacenado los registros y relaciones.
+## Conclusión
 
-En MySQL, los datos pueden verificarse desde phpMyAdmin. Para SQLite, puede utilizarse DB Browser for SQLite.
+Durante esta evaluación aprendí a conectar un programa de Python con servicios externos, trabajar con respuestas JSON y guardar información en SQLite. También pude entender mejor la importancia de validar los datos, proteger las contraseñas y controlar los errores para que el programa funcione de manera más segura.
 
-## Organización del código
-
-- `src/dominio/`: clases y métodos basados en el UML.
-- `src/persistencia/`: conexión con bases de datos y DAO.
-- `src/menus/`: menús de dominio y CRUD.
-- `src/complementos/`: funciones auxiliares.
-- `src/main.py`: inicio y navegación principal.
-- `Docs/`: diagramas UML.
-
-## Manejo de errores
-
-La aplicación utiliza `try-except`, validación de entradas y restricciones de la base de datos para manejar errores como identificadores inexistentes, datos incorrectos y problemas de conexión.
-
-## Uso de inteligencia artificial
-
-Durante el desarrollo se utilizaron herramientas de inteligencia artificial como apoyo para revisar y mejorar fragmentos de código.
-
-Las sugerencias deben ser analizadas, probadas y justificadas técnicamente. La documentación correspondiente se prepara como parte de la evaluación y defensa individual.
-
-## Finalidad
-
-Proyecto desarrollado con fines académicos para demostrar la implementación de una aplicación de consola orientada a objetos, integrada con una base de datos relacional y basada en un modelo UML.
+Lo que más me ayudó fue ir probando las funciones y corrigiendo los problemas que aparecían, porque así pude comprender mejor cómo funciona cada parte del proyecto.

@@ -9,8 +9,19 @@ from menus.menu_dominio_usuario import menu_dominio_usuario
 from menus.menu_dominio_gestionPermisos import menu_dominio_gestionPermisos
 from menus.menu_dominio_gestionDepartamento import menu_dominio_gestionDepartamento
 from complementos.complementos import limpiar_pantalla
+from getpass import getpass
+from servicios.autenticacion import preparar_cuentas, crear_admin_inicial, autenticar, registrar, pedir_clave_confirmada
+from persistencia.indicador_dao import preparar as preparar_indicadores
+from menus.menu_evaluacion3 import menu_evaluacion3
+from menus.menu_mis_datos import menu_mis_datos
+from persistencia.conexion import abrir_conexion
+import sqlite3
 
 def main():
+    preparar_cuentas()
+    preparar_indicadores()
+    crear_admin_inicial()
+    sesion = None
     usuarios = []
     gestion_permisos = GestionPermisos()
     gestion_departamentos = GestionDepartamento()
@@ -18,17 +29,84 @@ def main():
     while True:
         limpiar_pantalla()
         print("\n===== ECOTECH SOLUTIONS =====")
-        print("1. Empleado")
-        print("2. Departamento")
-        print("3. Proyecto")
-        print("4. Registro de Tiempo")
-        print("5. Usuario (demostracion)")
-        print("6. Gestion de Permisos (demostracion)")
-        print("7. Gestion de Departamento (demostracion)")
-        print("0. Salir")
+        print("Sesion:", sesion["usuario"] if sesion else "sin iniciar")
+        if sesion is None:
+            print("1. Iniciar sesion")
+            print("0. Salir")
+        elif sesion["rol"] == "admin":
+            print("1. Empleado")
+            print("2. Departamento")
+            print("3. Proyecto")
+            print("4. Registro de Tiempo")
+            print("5. Usuario")
+            print("6. Gestion de Permisos")
+            print("7. Gestion de Departamento")
+            print("8. Servicios externos (dolar y clima)")
+            print("9. Registrar cuenta de empleado")
+            print("10. Cerrar sesion")
+            print("0. Salir")
+        elif sesion["rol"] == "empleado":
+            print("8. Servicios externos (dolar y clima)")
+            print("9. Mis datos y registros")
+            print("10. Cerrar sesion")
+            print("0. Salir")
 
         opcion = input("Seleccione una opcion: ").strip()
 
+        if opcion == "10" or (opcion == "1" and sesion is None):
+            if sesion:
+                sesion = None
+                print("Sesion cerrada.")
+            else:
+                nombre = input("Usuario: ")
+                clave = getpass("Contrasena: ")
+                sesion = autenticar(nombre, clave)
+                print("Acceso correcto." if sesion else "Credenciales incorrectas.")
+            input("Presione Enter para continuar...")
+            limpiar_pantalla()
+            continue
+        if opcion == "0":
+            limpiar_pantalla()
+            print("Hasta luego.")
+            break
+        if opcion == "9" and sesion and sesion["rol"] == "admin":
+            if not sesion or sesion["rol"] != "admin":
+                print("Acceso denegado.")
+            else:
+                try:
+                    nombre = input("Nuevo usuario: ")
+                    empleado_id = int(input("ID de empleado existente: "))
+                    clave = pedir_clave_confirmada()
+                    registrar(nombre, clave, empleado_id)
+                    print("Cuenta registrada.")
+                except (ValueError, sqlite3.IntegrityError):
+                    print("No se pudo registrar: verifique datos, empleado y duplicados.")
+            input("Presione Enter para continuar...")
+            limpiar_pantalla()
+            continue
+        if opcion == "9" and sesion and sesion["rol"] == "empleado":
+            if sesion and sesion["rol"] == "empleado":
+                menu_mis_datos(sesion)
+                limpiar_pantalla()
+            else:
+                print("Acceso restringido a empleados.")
+                input("Presione Enter para continuar...")
+            limpiar_pantalla()
+            continue
+        if opcion == "8":
+            if sesion:
+                menu_evaluacion3(sesion)
+                limpiar_pantalla()
+            else:
+                print("Debe iniciar sesion.")
+                input("Presione Enter para continuar...")
+            limpiar_pantalla()
+            continue
+        if opcion in ("1", "2", "3", "4", "5", "6", "7") and (not sesion or sesion["rol"] != "admin"):
+            print("Acceso restringido al administrador.")
+            input("Presione Enter para continuar...")
+            limpiar_pantalla()
+            continue
         if opcion == "1":
             limpiar_pantalla()
             menu_dominio_empleado()
@@ -50,10 +128,6 @@ def main():
         elif opcion == "7":
             limpiar_pantalla()
             menu_dominio_gestionDepartamento(gestion_departamentos)
-        elif opcion == "0":
-            limpiar_pantalla()
-            print("Hasta luego.")
-            break
         else:
             print("Opcion no valida.")
             input("Presione Enter para continuar...")
@@ -65,4 +139,9 @@ if __name__ == "__main__":
     except Exception as error:
         print("Error al preparar la base de datos:", error)
     else:
-        main()
+        try:
+            main()
+        except KeyboardInterrupt:
+            print("\nPrograma interrumpido por el usuario.")
+        except EOFError:
+            print("\nEntrada finalizada. Cerrando programa.")
